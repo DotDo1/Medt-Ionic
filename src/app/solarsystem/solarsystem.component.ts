@@ -11,6 +11,20 @@ import * as THREE from 'three';
 export class SolarsystemComponent implements OnInit, AfterViewInit {
   @ViewChild('threejs') canvas!: ElementRef<HTMLCanvasElement>;
 
+  planets = [
+    { name: 'Merkur', info: 'Orbitdauer: 88 Tage, Abstand zur Sonne: 57.91 Mio. km, Monde: 0, Geschwindigkeit: 47.87 km/s' },
+    { name: 'Venus', info: 'Orbitdauer: 225 Tage, Abstand zur Sonne: 108.2 Mio. km, Monde: 0, Geschwindigkeit: 35.02 km/s' },
+    { name: 'Erde', info: 'Orbitdauer: 365 Tage, Abstand zur Sonne: 149.6 Mio. km, Monde: 1, Geschwindigkeit: 29.78 km/s' },
+    { name: 'Mars', info: 'Orbitdauer: 687 Tage, Abstand zur Sonne: 227.9 Mio. km, Monde: 2, Geschwindigkeit: 24.07 km/s' },
+    { name: 'Jupiter', info: 'Orbitdauer: 11.86 Jahre, Abstand zur Sonne: 778.5 Mio. km, Monde: 79, Geschwindigkeit: 13.07 km/s' },
+    { name: 'Saturn', info: 'Orbitdauer: 29.46 Jahre, Abstand zur Sonne: 1.434 Mrd. km, Monde: 83, Geschwindigkeit: 9.69 km/s' },
+    { name: 'Uranus', info: 'Orbitdauer: 84 Jahre, Abstand zur Sonne: 2.871 Mrd. km, Monde: 27, Geschwindigkeit: 6.81 km/s' },
+    { name: 'Neptun', info: 'Orbitdauer: 164.8 Jahre, Abstand zur Sonne: 4.495 Mrd. km, Monde: 14, Geschwindigkeit: 5.43 km/s' }
+  ];
+  
+
+  selectedPlanet: { name: string; info: string } | null = null;
+
   scene!: Scene;
   camera!: PerspectiveCamera;
   renderer!: WebGLRenderer;
@@ -58,6 +72,63 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   constructor() {}
 
   ngOnInit() {}
+  
+  showPlanetInfo(planetData: any) {
+    this.selectedPlanet = planetData;
+  
+    // Highlight den entsprechenden Planeten im 3D-Szenenobjekt durch Vergrößerung
+    switch (planetData.name) {
+      case 'Merkur':
+        this.highlightPlanet(this.mercury);
+        break;
+      case 'Venus':
+        this.highlightPlanet(this.venus);
+        break;
+      case 'Erde':
+        this.highlightPlanet(this.earth);
+        break;
+      case 'Mond':
+        this.highlightPlanet(this.moon);
+        break;
+      case 'Mars':
+        this.highlightPlanet(this.mars);
+        break;
+      case 'Jupiter':
+        this.highlightPlanet(this.jupiter);
+        break;
+      case 'Saturn':
+        this.highlightPlanet(this.saturn);
+        break;
+      case 'Uranus':
+        this.highlightPlanet(this.uranus);
+        break;
+      case 'Neptun':
+        this.highlightPlanet(this.neptune);
+        break;
+    }
+  }
+
+  highlightPlanet(planet: THREE.Mesh) {
+    // Setze die Größe aller Planeten zurück
+    this.resetPlanetHighlight();
+  
+    // Setze den ausgewählten Planeten auf eine feste Größe
+    const newSize = 10; // Feste Größe für den hervorgehobenen Planeten
+    planet.geometry = new THREE.SphereGeometry(newSize, 32, 32);
+  }
+  
+  resetPlanetHighlight() {
+    // Setze die Größe aller Planeten auf die Standardgröße zurück
+    this.mercury.geometry = new THREE.SphereGeometry(2 * this.SIZE_SCALE, 32, 32);
+    this.venus.geometry = new THREE.SphereGeometry(4 * this.SIZE_SCALE, 32, 32);
+    this.earth.geometry = new THREE.SphereGeometry(4 * this.SIZE_SCALE, 32, 32);
+    this.moon.geometry = new THREE.SphereGeometry(0.8 * this.SIZE_SCALE, 32, 32);
+    this.mars.geometry = new THREE.SphereGeometry(3 * this.SIZE_SCALE, 32, 32);
+    this.jupiter.geometry = new THREE.SphereGeometry(16 * this.SIZE_SCALE, 32, 32);
+    this.saturn.geometry = new THREE.SphereGeometry(12 * this.SIZE_SCALE, 32, 32);
+    this.uranus.geometry = new THREE.SphereGeometry(7 * this.SIZE_SCALE, 32, 32);
+    this.neptune.geometry = new THREE.SphereGeometry(6 * this.SIZE_SCALE, 32, 32);
+  }
 
   ngAfterViewInit() {
     this.scene = new Scene();

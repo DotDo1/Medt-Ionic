@@ -1,1 +1,21 @@
-<canvas #threejs></canvas>
+<div style="display: flex; height: 100%;">
+    <!-- Linke Seite: Liste der Planeten -->
+    <div style="width: 200px; padding: 10px; background-color: #f4f4f4;">
+      <h3>Planeten</h3>
+      <ul>
+        <li *ngFor="let planet of planets" (click)="showPlanetInfo(planet)" style="cursor: pointer; margin-bottom: 10px;">
+          {{ planet.name }}
+        </li>
+      </ul>
+    </div>
+  
+    <!-- Rechte Seite: Canvas für das Sonnensystem -->
+    <div style="flex: 1; position: relative;">
+      <canvas #threejs></canvas>
+      <div style="position: absolute; top: 10px; left: 10px; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px;" *ngIf="selectedPlanet">
+        <h4>{{ selectedPlanet.name }}</h4>
+        <p>{{ selectedPlanet.info }}</p>
+      </div>
+    </div>
+  </div>
+  
