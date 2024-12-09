@@ -9,8 +9,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
   styleUrls: ['./threejs-demo.component.scss'],
 })
 
-
-
 export class ThreejsDemoComponent implements OnInit, AfterViewInit {
   @ViewChild('threejs')
   canvas!: ElementRef<HTMLCanvasElement>;
