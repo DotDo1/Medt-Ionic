@@ -1,7 +1,12 @@
 import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { Line, LineBasicMaterial, Mesh, MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, RingGeometry, Scene, SphereGeometry, BufferGeometry, PointLight, WebGLRenderer } from 'three';
+import { Line, LineBasicMaterial, Mesh, MeshBasicMaterial, MeshStandardMaterial, MeshLambertMaterial, PerspectiveCamera, RingGeometry, Scene, SphereGeometry, BufferGeometry, PointLight, WebGLRenderer } from 'three';
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
+import Planet from './planet';
+import Moon from './moon';
 
 @Component({
   selector: 'app-solarsystem',
@@ -28,10 +33,14 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   scene!: Scene;
   camera!: PerspectiveCamera;
   renderer!: WebGLRenderer;
+  composer!: EffectComposer;
   clock = new THREE.Clock();
   controls!: OrbitControls;
 
   sun!: Mesh;
+  sunScene!: Scene;
+  renderTarget!: THREE.WebGLRenderTarget;
+
   mercury!: Mesh;  // Merkur hinzugefügt
   venus!: Mesh;
   earth!: Mesh;
@@ -114,26 +123,25 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   
     // Setze den ausgewählten Planeten auf eine feste Größe
     const newSize = 10; // Feste Größe für den hervorgehobenen Planeten
-    planet.geometry = new THREE.SphereGeometry(newSize, 32, 32);
+    planet.scale.set(newSize, newSize, newSize);
   }
   
   resetPlanetHighlight() {
-    // Setze die Größe aller Planeten auf die Standardgröße zurück
-    this.mercury.geometry = new THREE.SphereGeometry(2 * this.SIZE_SCALE, 32, 32);
-    this.venus.geometry = new THREE.SphereGeometry(4 * this.SIZE_SCALE, 32, 32);
-    this.earth.geometry = new THREE.SphereGeometry(4 * this.SIZE_SCALE, 32, 32);
-    this.moon.geometry = new THREE.SphereGeometry(0.8 * this.SIZE_SCALE, 32, 32);
-    this.mars.geometry = new THREE.SphereGeometry(3 * this.SIZE_SCALE, 32, 32);
-    this.jupiter.geometry = new THREE.SphereGeometry(16 * this.SIZE_SCALE, 32, 32);
-    this.saturn.geometry = new THREE.SphereGeometry(12 * this.SIZE_SCALE, 32, 32);
-    this.uranus.geometry = new THREE.SphereGeometry(7 * this.SIZE_SCALE, 32, 32);
-    this.neptune.geometry = new THREE.SphereGeometry(6 * this.SIZE_SCALE, 32, 32);
+    this.mercury.scale.set(2 * this.SIZE_SCALE, 2 * this.SIZE_SCALE, 2 * this.SIZE_SCALE);
+    this.venus.scale.set(4 * this.SIZE_SCALE, 4 * this.SIZE_SCALE, 4 * this.SIZE_SCALE);
+    this.earth.scale.set(4 * this.SIZE_SCALE, 4 * this.SIZE_SCALE, 4 * this.SIZE_SCALE);
+    this.moon.scale.set(0.8 * this.SIZE_SCALE, 0.8 * this.SIZE_SCALE, 0.8 * this.SIZE_SCALE);
+    this.mars.scale.set(3 * this.SIZE_SCALE, 3 * this.SIZE_SCALE, 3 * this.SIZE_SCALE);
+    this.jupiter.scale.set(16 * this.SIZE_SCALE, 16 * this.SIZE_SCALE, 16 * this.SIZE_SCALE);
+    this.saturn.scale.set(12 * this.SIZE_SCALE, 12 * this.SIZE_SCALE, 12 * this.SIZE_SCALE);
+    this.uranus.scale.set(7 * this.SIZE_SCALE, 7 * this.SIZE_SCALE, 7 * this.SIZE_SCALE);
+    this.neptune.scale.set(6 * this.SIZE_SCALE, 6 * this.SIZE_SCALE, 6 * this.SIZE_SCALE);
   }
 
   ngAfterViewInit() {
     this.scene = new Scene();
 
-    this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
     this.camera.position.set(600, 300, 600); // Kamera weiter weg positionieren, damit alles sichtbar ist
     this.camera.lookAt(0, 0, 0);
 
@@ -141,105 +149,48 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
 
+    this.addBackground();
+
+    // Postprocessing setup
+    this.composer = new EffectComposer(this.renderer);
+    const renderPass = new RenderPass(this.scene, this.camera);
+    this.composer.addPass(renderPass);
+
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+    bloomPass.threshold = 0.1;
+    bloomPass.strength = 2.5; // Glare intensity
+    bloomPass.radius = 0.4;
+    this.composer.addPass(bloomPass);
+
     // Sonne erstellen
     const sunGeometry = new SphereGeometry(15 * 0.5 , 32, 32); // Sonne in angemessener Größe
     const sunMaterial = new MeshBasicMaterial({ color: 0xffcc00 });
-    this.sun = new Mesh(sunGeometry, sunMaterial);
+    this.sun = new Mesh(sunGeometry, sunMaterial); // Standard Layer
     this.scene.add(this.sun);
 
     const sunlight = new PointLight(0xffffff, 500000, 10000); // Lichtquelle mit großer Reichweite
     sunlight.position.set(0, 0, 0);
     sunlight.castShadow = true;
-    sunlight.shadow.mapSize.width = 2048; // Hochauflösender Schatten
-    sunlight.shadow.mapSize.height = 2048;
+    sunlight.shadow.mapSize.width = 10000; // Hochauflösender Schatten
+    sunlight.shadow.mapSize.height = 10000;
     this.scene.add(sunlight);
 
-    // Merkur erstellen
-    const mercuryGeometry = new SphereGeometry(2 * this.SIZE_SCALE, 32, 32); // Merkur kleiner
-    const mercuryMaterial = new MeshLambertMaterial({ color: 0x888888 });
-    this.mercury = new Mesh(mercuryGeometry, mercuryMaterial);
-    this.mercury.position.set(this.mercuryOrbitRadius, 0, 0);
-    this.mercury.castShadow = true;
-    this.mercury.receiveShadow = true;
-    this.scene.add(this.mercury);
+    // Create Mesh instances for each planet and add to scene
+    this.mercury = new Mesh(new SphereGeometry(2 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x888888 }));
+    this.venus = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0xffc300 }));
+    this.earth = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x00ff00 }));
+    this.mars = new Mesh(new SphereGeometry(3 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0xff5733 }));
+    this.jupiter = new Mesh(new SphereGeometry(16 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x8B4513 }));
+    this.saturn = new Mesh(new SphereGeometry(12 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0xF4A300 }));
+    this.uranus = new Mesh(new SphereGeometry(7 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x00ffff }));
+    this.neptune = new Mesh(new SphereGeometry(6 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x0000ff }));
 
-    // Venus erstellen
-    const venusGeometry = new SphereGeometry(4 * this.SIZE_SCALE, 32, 32);
-    const venusMaterial = new MeshLambertMaterial({ color: 0xffc300 });
-    this.venus = new Mesh(venusGeometry, venusMaterial);
-    this.venus.position.set(this.venusOrbitRadius, 0, 0);
-    this.venus.castShadow = true;
-    this.venus.receiveShadow = true;
-    this.scene.add(this.venus);
-
-    // Erde erstellen
-    const earthGeometry = new SphereGeometry(4 * this.SIZE_SCALE, 32, 32);
-    const earthMaterial = new MeshLambertMaterial({ color: 0x00ff00 });
-    this.earth = new Mesh(earthGeometry, earthMaterial);
-    this.earth.position.set(this.earthOrbitRadius, 0, 0);
-    this.earth.castShadow = true;
-    this.earth.receiveShadow = true;
-    this.scene.add(this.earth);
-
-    // Mond erstellen
     const moonGeometry = new SphereGeometry(0.8 * this.SIZE_SCALE, 32, 32);
     const moonMaterial = new MeshLambertMaterial({ color: 0xaaaaaa });
     this.moon = new Mesh(moonGeometry, moonMaterial);
     this.moon.castShadow = true;
     this.moon.receiveShadow = true;
     this.scene.add(this.moon);
-
-    // Mars erstellen
-    const marsGeometry = new SphereGeometry(3 * this.SIZE_SCALE, 32, 32);
-    const marsMaterial = new MeshLambertMaterial({ color: 0xff5733 });
-    this.mars = new Mesh(marsGeometry, marsMaterial);
-    this.mars.position.set(this.marsOrbitRadius, 0, 0);
-    this.mars.castShadow = true;
-    this.mars.receiveShadow = true;
-    this.scene.add(this.mars);
-
-    // Jupiter erstellen
-    const jupiterGeometry = new SphereGeometry(16 * this.SIZE_SCALE, 32, 32);
-    const jupiterMaterial = new MeshLambertMaterial({ color: 0x8B4513 });
-    this.jupiter = new Mesh(jupiterGeometry, jupiterMaterial);
-    this.jupiter.position.set(this.jupiterOrbitRadius, 0, 0);
-    this.jupiter.castShadow = true;
-    this.jupiter.receiveShadow = true;
-    this.scene.add(this.jupiter);
-
-    // Saturn erstellen
-    const saturnGeometry = new SphereGeometry(12 * this.SIZE_SCALE, 32, 32);
-    const saturnMaterial = new MeshLambertMaterial({ color: 0xF4A300 });
-    this.saturn = new Mesh(saturnGeometry, saturnMaterial);
-    this.saturn.position.set(this.saturnOrbitRadius, 0, 0);
-    this.saturn.castShadow = true;
-    this.saturn.receiveShadow = true;
-    this.scene.add(this.saturn);
-
-    // Saturn Ringe erstellen
-    const ringGeometry = new RingGeometry(15, 18, 64);
-    const ringMaterial = new MeshLambertMaterial({ color: 0xD3D3D3, side: 2, opacity: 0.7, transparent: true });
-    this.saturnRings = new Mesh(ringGeometry, ringMaterial);
-    this.saturnRings.rotation.x = -Math.PI / 2;
-    this.saturn.add(this.saturnRings);
-
-    // Uranus erstellen
-    const uranusGeometry = new SphereGeometry(7 * this.SIZE_SCALE, 32, 32);
-    const uranusMaterial = new MeshLambertMaterial({ color: 0x00ffff });
-    this.uranus = new Mesh(uranusGeometry, uranusMaterial);
-    this.uranus.position.set(this.uranusOrbitRadius, 0, 0);
-    this.uranus.castShadow = true;
-    this.uranus.receiveShadow = true;
-    this.scene.add(this.uranus);
-
-    // Neptun erstellen
-    const neptuneGeometry = new SphereGeometry(6 * this.SIZE_SCALE, 32, 32);
-    const neptuneMaterial = new MeshLambertMaterial({ color: 0x0000ff });
-    this.neptune = new Mesh(neptuneGeometry, neptuneMaterial);
-    this.neptune.position.set(this.neptuneOrbitRadius, 0, 0);
-    this.neptune.castShadow = true;
-    this.neptune.receiveShadow = true;
-    this.scene.add(this.neptune);
 
     // Orbit Paths erstellen
     this.createOrbitPath(this.mercuryOrbitRadius);
@@ -251,6 +202,15 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.createOrbitPath(this.uranusOrbitRadius);
     this.createOrbitPath(this.neptuneOrbitRadius);
 
+    this.scene.add(this.mercury);
+    this.scene.add(this.venus);
+    this.scene.add(this.earth);
+    this.scene.add(this.mars);
+    this.scene.add(this.jupiter);
+    this.scene.add(this.saturn);
+    this.scene.add(this.uranus);
+    this.scene.add(this.neptune);
+
     // OrbitControls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -258,6 +218,29 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
 
     this.renderer.setAnimationLoop(() => this.animate());
   }
+
+  addBackground() {
+    // Lade Textur für den Hintergrund (z.B. ein Universumshintergrundbild)
+    const textureLoader = new THREE.TextureLoader();
+    const texture = textureLoader.load('assets/background.jpg');  // Ersetze mit dem Pfad zu deinem Hintergrundbild
+
+    // Erstelle eine Kugel mit der Textur als Material
+    const geometry = new SphereGeometry(50000, 60, 60);
+    const material = new MeshStandardMaterial({
+      map: texture,
+      side: THREE.DoubleSide,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.5,
+    });
+
+    const sphere = new Mesh(geometry, material);
+    sphere.position.set(0, 0, 0);
+    this.scene.add(sphere);
+
+    // Entferne die Kugel, damit sie als Hintergrund fungiert und sich nicht dreht
+    this.scene.background = texture;
+  }
+
   createOrbitPath(radius: number) {
     const points = [];
     const segments = 100;
@@ -272,47 +255,42 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.scene.add(line);
   }
 
-  // Animation für Planetenbewegung
-  animate() {
-    const elapsedTime = this.clock.getElapsedTime();
-  
-    // Bewegung der Erde
-    this.earth.position.x = this.earthOrbitRadius * Math.cos(elapsedTime / this.earthOrbitTime * 2 * Math.PI);
-    this.earth.position.z = this.earthOrbitRadius * Math.sin(elapsedTime / this.earthOrbitTime * 2 * Math.PI);
-  
-    // Mond bewegt sich um die Erde
-    this.moon.position.x = this.earth.position.x + this.moonOrbitRadius * Math.cos(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
-    this.moon.position.z = this.earth.position.z + this.moonOrbitRadius * Math.sin(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
-  
-    // Bewegung von Merkur
-    this.mercury.position.x = this.mercuryOrbitRadius * Math.cos(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
-    this.mercury.position.z = this.mercuryOrbitRadius * Math.sin(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
-  
-    // Bewegung von Venus
-    this.venus.position.x = this.venusOrbitRadius * Math.cos(elapsedTime / this.venusOrbitTime * 2 * Math.PI);
-    this.venus.position.z = this.venusOrbitRadius * Math.sin(elapsedTime / this.venusOrbitTime * 2 * Math.PI);
-  
-    // Bewegung von Mars
-    this.mars.position.x = this.marsOrbitRadius * Math.cos(elapsedTime / this.marsOrbitTime * 2 * Math.PI);
-    this.mars.position.z = this.marsOrbitRadius * Math.sin(elapsedTime / this.marsOrbitTime * 2 * Math.PI);
-  
-    // Bewegung von Jupiter
-    this.jupiter.position.x = this.jupiterOrbitRadius * Math.cos(elapsedTime / this.jupiterOrbitTime * 2 * Math.PI);
-    this.jupiter.position.z = this.jupiterOrbitRadius * Math.sin(elapsedTime / this.jupiterOrbitTime * 2 * Math.PI);
-  
-    // Bewegung von Saturn
-    this.saturn.position.x = this.saturnOrbitRadius * Math.cos(elapsedTime / this.saturnOrbitTime * 2 * Math.PI);
-    this.saturn.position.z = this.saturnOrbitRadius * Math.sin(elapsedTime / this.saturnOrbitTime * 2 * Math.PI);
-  
-    // Bewegung von Uranus
-    this.uranus.position.x = this.uranusOrbitRadius * Math.cos(elapsedTime / this.uranusOrbitTime * 2 * Math.PI);
-    this.uranus.position.z = this.uranusOrbitRadius * Math.sin(elapsedTime / this.uranusOrbitTime * 2 * Math.PI);
-  
-    // Bewegung von Neptun
-    this.neptune.position.x = this.neptuneOrbitRadius * Math.cos(elapsedTime / this.neptuneOrbitTime * 2 * Math.PI);
-    this.neptune.position.z = this.neptuneOrbitRadius * Math.sin(elapsedTime / this.neptuneOrbitTime * 2 * Math.PI);
-  
-    // Renderer aufrufen
-    this.renderer.render(this.scene, this.camera);
-  }
+animate() {
+  const elapsedTime = this.clock.getElapsedTime();
+
+  // Bewegung der Planeten (Beispiel: Merkur, Venus, Erde)
+  this.mercury.position.x = this.mercuryOrbitRadius * Math.cos(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
+  this.mercury.position.z = this.mercuryOrbitRadius * Math.sin(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
+
+  this.venus.position.x = this.venusOrbitRadius * Math.cos(elapsedTime / this.venusOrbitTime * 2 * Math.PI);
+  this.venus.position.z = this.venusOrbitRadius * Math.sin(elapsedTime / this.venusOrbitTime * 2 * Math.PI);
+
+  this.earth.position.x = this.earthOrbitRadius * Math.cos(elapsedTime / this.earthOrbitTime * 2 * Math.PI);
+  this.earth.position.z = this.earthOrbitRadius * Math.sin(elapsedTime / this.earthOrbitTime * 2 * Math.PI);
+
+  this.mars.position.x = this.marsOrbitRadius * Math.cos(elapsedTime / this.marsOrbitTime * 2 * Math.PI);
+  this.mars.position.z = this.marsOrbitRadius * Math.sin(elapsedTime / this.marsOrbitTime * 2 * Math.PI);
+
+  this.jupiter.position.x = this.jupiterOrbitRadius * Math.cos(elapsedTime / this.jupiterOrbitTime * 2 * Math.PI);
+  this.jupiter.position.z = this.jupiterOrbitRadius * Math.sin(elapsedTime / this.jupiterOrbitTime * 2 * Math.PI);
+
+  this.saturn.position.x = this.saturnOrbitRadius * Math.cos(elapsedTime / this.saturnOrbitTime * 2 * Math.PI);
+  this.saturn.position.z = this.saturnOrbitRadius * Math.sin(elapsedTime / this.saturnOrbitTime * 2 * Math.PI);
+
+  this.uranus.position.x = this.uranusOrbitRadius * Math.cos(elapsedTime / this.uranusOrbitTime * 2 * Math.PI);
+  this.uranus.position.z = this.uranusOrbitRadius * Math.sin(elapsedTime / this.uranusOrbitTime * 2 * Math.PI);
+
+  this.neptune.position.x = this.neptuneOrbitRadius * Math.cos(elapsedTime / this.neptuneOrbitTime * 2 * Math.PI);
+  this.neptune.position.z = this.neptuneOrbitRadius * Math.sin(elapsedTime / this.neptuneOrbitTime * 2 * Math.PI);
+
+  // Mond bewegt sich um die Erde
+  this.moon.position.x = this.earth.position.x + this.moonOrbitRadius * Math.cos(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
+  this.moon.position.z = this.earth.position.z + this.moonOrbitRadius * Math.sin(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
+;
+
+  // Renderer aufrufen
+  this.renderer.clear();
+  this.composer.render();
+  this.renderer.render(this.scene, this.camera);
+}
 }
