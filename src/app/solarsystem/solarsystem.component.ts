@@ -134,6 +134,7 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.scene = new Scene();
+    const textureLoader = new THREE.TextureLoader();
 
     this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
     this.camera.position.set(600, 300, 600); // Kamera weiter weg positionieren, damit alles sichtbar ist
@@ -162,7 +163,7 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.sun = new Mesh(sunGeometry, sunMaterial); // Standard Layer
     this.scene.add(this.sun);
 
-    const sunlight = new PointLight(0xffffff, 500000, 10000); // Lichtquelle mit großer Reichweite
+    const sunlight = new PointLight(0xffffff, 10000, 10000); // Lichtquelle mit großer Reichweite
     sunlight.position.set(0, 0, 0);
     sunlight.castShadow = true;
     sunlight.shadow.mapSize.width = 10000; // Hochauflösender Schatten
@@ -172,7 +173,18 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     // Create Mesh instances for each planet and add to scene
     this.mercury = new Mesh(new SphereGeometry(2 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x888888 }));
     this.venus = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0xffc300 }));
-    this.earth = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x00ff00 }));
+
+    //so alles machen
+    this.earth = new Mesh(
+      new SphereGeometry(4 * this.SIZE_SCALE, 32, 32),
+      new MeshStandardMaterial({
+        map: textureLoader.load('assets/earth.jpg'), // Replace with your texture path
+      })
+    );
+    this.earth.receiveShadow = true; // Erde empfängt Schatten
+    this.earth.castShadow = true;
+
+
     this.mars = new Mesh(new SphereGeometry(3 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0xff5733 }));
     this.jupiter = new Mesh(new SphereGeometry(16 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x8B4513 }));
     this.saturn = new Mesh(new SphereGeometry(12 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0xF4A300 }));
