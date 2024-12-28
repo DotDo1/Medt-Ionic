@@ -7,6 +7,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
 import Planet from './planet';
 import Moon from './moon';
+import gsap from 'gsap';
 
 @Component({
   selector: 'app-solarsystem',
@@ -29,6 +30,8 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   
 
   selectedPlanet: { name: string; info: string } | null = null;
+  trackedPlanet: THREE.Mesh | null = null;
+  isTracking: boolean = false;
 
   scene!: Scene;
   camera!: PerspectiveCamera;
@@ -88,42 +91,33 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     // Highlight den entsprechenden Planeten im 3D-Szenenobjekt durch Vergrößerung
     switch (planetData.name) {
       case 'Merkur':
-        this.highlightPlanet(this.mercury);
+        this.trackPlanet(this.mercury);
         break;
       case 'Venus':
-        this.highlightPlanet(this.venus);
+        this.trackPlanet(this.venus);
         break;
       case 'Erde':
-        this.highlightPlanet(this.earth);
+        this.trackPlanet(this.earth);
         break;
       case 'Mond':
-        this.highlightPlanet(this.moon);
+        this.trackPlanet(this.moon);
         break;
       case 'Mars':
-        this.highlightPlanet(this.mars);
+        this.trackPlanet(this.mars);
         break;
       case 'Jupiter':
-        this.highlightPlanet(this.jupiter);
+        this.trackPlanet(this.jupiter);
         break;
       case 'Saturn':
-        this.highlightPlanet(this.saturn);
+        this.trackPlanet(this.saturn);
         break;
       case 'Uranus':
-        this.highlightPlanet(this.uranus);
+        this.trackPlanet(this.uranus);
         break;
       case 'Neptun':
-        this.highlightPlanet(this.neptune);
+        this.trackPlanet(this.neptune);
         break;
     }
-  }
-
-  highlightPlanet(planet: THREE.Mesh) {
-    // Setze die Größe aller Planeten zurück
-    this.resetPlanetHighlight();
-  
-    // Setze den ausgewählten Planeten auf eine feste Größe
-    const newSize = 10; // Feste Größe für den hervorgehobenen Planeten
-    planet.scale.set(newSize, newSize, newSize);
   }
   
   resetPlanetHighlight() {
@@ -184,6 +178,14 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.saturn = new Mesh(new SphereGeometry(12 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0xF4A300 }));
     this.uranus = new Mesh(new SphereGeometry(7 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x00ffff }));
     this.neptune = new Mesh(new SphereGeometry(6 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x0000ff }));
+
+    // Saturn's Rings
+    const ringGeometry = new RingGeometry(15 * this.SIZE_SCALE, 25 * this.SIZE_SCALE, 64);
+    const ringMaterial = new MeshBasicMaterial({ color: 0xC2B280, side: THREE.DoubleSide, opacity: 0.5, transparent: true });
+    this.saturnRings = new Mesh(ringGeometry, ringMaterial);
+    
+    this.saturn.add(this.saturnRings);
+    this.scene.add(this.saturnRings);
 
     const moonGeometry = new SphereGeometry(0.8 * this.SIZE_SCALE, 32, 32);
     const moonMaterial = new MeshLambertMaterial({ color: 0xaaaaaa });
@@ -255,42 +257,85 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.scene.add(line);
   }
 
-animate() {
-  const elapsedTime = this.clock.getElapsedTime();
+  animate() {
+    const elapsedTime = this.clock.getElapsedTime();
+  
+    // Update planet positions
+    this.mercury.position.x = this.mercuryOrbitRadius * Math.cos(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
+    this.mercury.position.z = this.mercuryOrbitRadius * Math.sin(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
+  
+    this.venus.position.x = this.venusOrbitRadius * Math.cos(elapsedTime / this.venusOrbitTime * 2 * Math.PI);
+    this.venus.position.z = this.venusOrbitRadius * Math.sin(elapsedTime / this.venusOrbitTime * 2 * Math.PI);
+  
+    this.earth.position.x = this.earthOrbitRadius * Math.cos(elapsedTime / this.earthOrbitTime * 2 * Math.PI);
+    this.earth.position.z = this.earthOrbitRadius * Math.sin(elapsedTime / this.earthOrbitTime * 2 * Math.PI);
+  
+    this.mars.position.x = this.marsOrbitRadius * Math.cos(elapsedTime / this.marsOrbitTime * 2 * Math.PI);
+    this.mars.position.z = this.marsOrbitRadius * Math.sin(elapsedTime / this.marsOrbitTime * 2 * Math.PI);
+  
+    this.jupiter.position.x = this.jupiterOrbitRadius * Math.cos(elapsedTime / this.jupiterOrbitTime * 2 * Math.PI);
+    this.jupiter.position.z = this.jupiterOrbitRadius * Math.sin(elapsedTime / this.jupiterOrbitTime * 2 * Math.PI);
+  
+    this.saturn.position.x = this.saturnOrbitRadius * Math.cos(elapsedTime / this.saturnOrbitTime * 2 * Math.PI);
+    this.saturn.position.z = this.saturnOrbitRadius * Math.sin(elapsedTime / this.saturnOrbitTime * 2 * Math.PI);
 
-  // Bewegung der Planeten (Beispiel: Merkur, Venus, Erde)
-  this.mercury.position.x = this.mercuryOrbitRadius * Math.cos(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
-  this.mercury.position.z = this.mercuryOrbitRadius * Math.sin(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
+    this.saturnRings.position.copy(this.saturn.position);
+    this.saturnRings.rotation.x = Math.PI / 180 * 27; // Tilt the rings by ~27 degrees
+    this.saturnRings.rotation.z = Math.PI / 2;
+    this.saturnRings.rotation.z += 0.005;
+  
+    this.uranus.position.x = this.uranusOrbitRadius * Math.cos(elapsedTime / this.uranusOrbitTime * 2 * Math.PI);
+    this.uranus.position.z = this.uranusOrbitRadius * Math.sin(elapsedTime / this.uranusOrbitTime * 2 * Math.PI);
+  
+    this.neptune.position.x = this.neptuneOrbitRadius * Math.cos(elapsedTime / this.neptuneOrbitTime * 2 * Math.PI);
+    this.neptune.position.z = this.neptuneOrbitRadius * Math.sin(elapsedTime / this.neptuneOrbitTime * 2 * Math.PI);
+  
+    // Moon orbiting Earth
+    this.moon.position.x = this.earth.position.x + this.moonOrbitRadius * Math.cos(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
+    this.moon.position.z = this.earth.position.z + this.moonOrbitRadius * Math.sin(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
+  
+    // Track selected planet
+    if (this.trackedPlanet && this.isTracking) {
+      const planetPosition = new THREE.Vector3();
+      this.trackedPlanet.getWorldPosition(planetPosition);
+  
+      // Define a closer offset for a smooth camera approach
+      const offset = new THREE.Vector3(10, 10, 10); // You can adjust this to control distance
+      const targetPosition = planetPosition.clone().add(offset);
+  
+      // Interpolate camera position smoothly towards the target
+      this.camera.position.lerp(targetPosition, 0.1); // Adjust 0.1 for smoothness
+  
+      // Make sure the camera is looking at the planet
+      this.camera.lookAt(planetPosition);
+  
+      // Update the OrbitControls target
+      this.controls.target.copy(planetPosition);
+      this.controls.update();
+    }
+  
+    // Render the scene
+    this.renderer.clear();
+    this.composer.render();
+    this.renderer.render(this.scene, this.camera);
+  }
 
-  this.venus.position.x = this.venusOrbitRadius * Math.cos(elapsedTime / this.venusOrbitTime * 2 * Math.PI);
-  this.venus.position.z = this.venusOrbitRadius * Math.sin(elapsedTime / this.venusOrbitTime * 2 * Math.PI);
+  trackPlanet(planet: THREE.Mesh) {
 
-  this.earth.position.x = this.earthOrbitRadius * Math.cos(elapsedTime / this.earthOrbitTime * 2 * Math.PI);
-  this.earth.position.z = this.earthOrbitRadius * Math.sin(elapsedTime / this.earthOrbitTime * 2 * Math.PI);
+    this.trackedPlanet = planet;
+    this.isTracking = true;
 
-  this.mars.position.x = this.marsOrbitRadius * Math.cos(elapsedTime / this.marsOrbitTime * 2 * Math.PI);
-  this.mars.position.z = this.marsOrbitRadius * Math.sin(elapsedTime / this.marsOrbitTime * 2 * Math.PI);
+    const planetPosition = new THREE.Vector3();
+    planet.getWorldPosition(planetPosition);
 
-  this.jupiter.position.x = this.jupiterOrbitRadius * Math.cos(elapsedTime / this.jupiterOrbitTime * 2 * Math.PI);
-  this.jupiter.position.z = this.jupiterOrbitRadius * Math.sin(elapsedTime / this.jupiterOrbitTime * 2 * Math.PI);
+    const offset = new THREE.Vector3(10, 10, 10);
+    const targetPosition = planetPosition.clone().add(offset);
 
-  this.saturn.position.x = this.saturnOrbitRadius * Math.cos(elapsedTime / this.saturnOrbitTime * 2 * Math.PI);
-  this.saturn.position.z = this.saturnOrbitRadius * Math.sin(elapsedTime / this.saturnOrbitTime * 2 * Math.PI);
+    this.camera.position.lerp(targetPosition, 0.1);
 
-  this.uranus.position.x = this.uranusOrbitRadius * Math.cos(elapsedTime / this.uranusOrbitTime * 2 * Math.PI);
-  this.uranus.position.z = this.uranusOrbitRadius * Math.sin(elapsedTime / this.uranusOrbitTime * 2 * Math.PI);
+    this.camera.lookAt(planetPosition);
 
-  this.neptune.position.x = this.neptuneOrbitRadius * Math.cos(elapsedTime / this.neptuneOrbitTime * 2 * Math.PI);
-  this.neptune.position.z = this.neptuneOrbitRadius * Math.sin(elapsedTime / this.neptuneOrbitTime * 2 * Math.PI);
-
-  // Mond bewegt sich um die Erde
-  this.moon.position.x = this.earth.position.x + this.moonOrbitRadius * Math.cos(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
-  this.moon.position.z = this.earth.position.z + this.moonOrbitRadius * Math.sin(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
-;
-
-  // Renderer aufrufen
-  this.renderer.clear();
-  this.composer.render();
-  this.renderer.render(this.scene, this.camera);
-}
+    this.controls.target.copy(planetPosition);
+    this.controls.update();
+  }
 }
