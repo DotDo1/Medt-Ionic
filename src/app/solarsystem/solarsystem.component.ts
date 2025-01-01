@@ -8,6 +8,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import Planet from './planet';
 import Moon from './moon';
 import gsap from 'gsap';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
 
 @Component({
   selector: 'app-solarsystem',
@@ -44,7 +45,7 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   sunScene!: Scene;
   renderTarget!: THREE.WebGLRenderTarget;
 
-  mercury!: Mesh;  // Merkur hinzugefügt
+  mercury!: Mesh;
   venus!: Mesh;
   earth!: Mesh;
   moon!: Mesh;
@@ -52,34 +53,31 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   jupiter!: Mesh;
   saturn!: Mesh;
   saturnRings!: Mesh;
-  uranus!: Mesh;  // Uranus hinzugefügt
-  neptune!: Mesh;  // Neptun hinzugefügt
+  uranus!: Mesh;
+  neptune!: Mesh;
 
-  // Maßstab und Distanzen
-  DISTANCE_SCALE = 0.1; // Maßstab für Distanzen
-  SIZE_SCALE = 0.2; // Maßstab für Größen der Planeten und Sonne
+  DISTANCE_SCALE = 0.1;
+  SIZE_SCALE = 0.2;
 
-  // Orbit-Radien (mit angepasstem Maßstab)
-  mercuryOrbitRadius = 25; // Merkur
-  venusOrbitRadius = 40; // Venus
-  earthOrbitRadius = 60; // Erde
-  marsOrbitRadius = 90; // Mars
-  jupiterOrbitRadius = 200; // Jupiter
-  saturnOrbitRadius = 300; // Saturn
-  uranusOrbitRadius = 400; // Uranus
-  neptuneOrbitRadius = 500; // Neptun
-  moonOrbitRadius = 10; // Mond
+  mercuryOrbitRadius = 25;
+  venusOrbitRadius = 40;
+  earthOrbitRadius = 60;
+  marsOrbitRadius = 90;
+  jupiterOrbitRadius = 200;
+  saturnOrbitRadius = 300;
+  uranusOrbitRadius = 400;
+  neptuneOrbitRadius = 500;
+  moonOrbitRadius = 10;
 
-  // Orbitalzeiten
-  earthOrbitTime = 10; // Erde (Referenz)
-  mercuryOrbitTime = this.earthOrbitTime * 0.24; // Merkur dauert 0.24 Erdenjahre
-  venusOrbitTime = this.earthOrbitTime * 0.615; // Venus dauert 0.615 Erdenjahre
+  earthOrbitTime = 10;
+  mercuryOrbitTime = this.earthOrbitTime * 0.24;
+  venusOrbitTime = this.earthOrbitTime * 0.615;
   moonOrbitTime = this.earthOrbitTime * 0.083;
-  marsOrbitTime = this.earthOrbitTime * 1.88; // Mars dauert 1,88 Erdenjahre
-  jupiterOrbitTime = this.earthOrbitTime * 11.86; // Jupiter dauert 11.86 Erdenjahre
-  saturnOrbitTime = this.earthOrbitTime * 29.46; // Saturn dauert 29.46 Erdenjahre
-  uranusOrbitTime = this.earthOrbitTime * 84; // Uranus dauert 84 Erdenjahre
-  neptuneOrbitTime = this.earthOrbitTime * 164.8; // Neptun dauert 164.8 Erdenjahre
+  marsOrbitTime = this.earthOrbitTime * 1.88
+  jupiterOrbitTime = this.earthOrbitTime * 11.86;
+  saturnOrbitTime = this.earthOrbitTime * 29.46;
+  uranusOrbitTime = this.earthOrbitTime * 84;
+  neptuneOrbitTime = this.earthOrbitTime * 164.8;
 
   constructor() {}
 
@@ -88,7 +86,6 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   showPlanetInfo(planetData: any) {
     this.selectedPlanet = planetData;
   
-    // Highlight den entsprechenden Planeten im 3D-Szenenobjekt durch Vergrößerung
     switch (planetData.name) {
       case 'Merkur':
         this.trackPlanet(this.mercury);
@@ -137,7 +134,7 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     const textureLoader = new THREE.TextureLoader();
 
     this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
-    this.camera.position.set(600, 300, 600); // Kamera weiter weg positionieren, damit alles sichtbar ist
+    this.camera.position.set(600, 300, 600);
     this.camera.lookAt(0, 0, 0);
 
     this.renderer = new WebGLRenderer({ canvas: this.canvas.nativeElement, antialias: true });
@@ -146,42 +143,32 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
 
     this.addBackground();
 
-    // Postprocessing setup
     this.composer = new EffectComposer(this.renderer);
     const renderPass = new RenderPass(this.scene, this.camera);
     this.composer.addPass(renderPass);
 
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
     bloomPass.threshold = 0.1;
-    bloomPass.strength = 2.5; // Glare intensity
+    bloomPass.strength = 2.5;
     bloomPass.radius = 0.4;
     this.composer.addPass(bloomPass);
 
-    // Sonne erstellen
-    const sunGeometry = new SphereGeometry(15 * 0.5 , 32, 32); // Sonne in angemessener Größe
-    const sunMaterial = new MeshBasicMaterial({ color: 0xffcc00 });
-    this.sun = new Mesh(sunGeometry, sunMaterial); // Standard Layer
-    this.scene.add(this.sun);
+    this.sun = new Mesh(new SphereGeometry(15 * 0.5 , 32, 32), new MeshBasicMaterial({ color: 0xffcc00 }));
 
-    const sunlight = new PointLight(0xffffff, 10000, 10000); // Lichtquelle mit großer Reichweite
+    const sunlight = new PointLight(0xffffff, 10000, 10000);
     sunlight.position.set(0, 0, 0);
     sunlight.castShadow = true;
-    sunlight.shadow.mapSize.width = 10000; // Hochauflösender Schatten
+    sunlight.shadow.mapSize.width = 10000;
     sunlight.shadow.mapSize.height = 10000;
     this.scene.add(sunlight);
 
-    // Create Mesh instances for each planet and add to scene
     this.mercury = new Mesh(new SphereGeometry(2 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x888888 }));
+
     this.venus = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0xffc300 }));
 
     //so alles machen
-    this.earth = new Mesh(
-      new SphereGeometry(4 * this.SIZE_SCALE, 32, 32),
-      new MeshStandardMaterial({
-        map: textureLoader.load('assets/earth.jpg'), // Replace with your texture path
-      })
-    );
-    this.earth.receiveShadow = true; // Erde empfängt Schatten
+    this.earth = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32),new MeshStandardMaterial({map: textureLoader.load('assets/earth.jpg'),}));
+    this.earth.receiveShadow = true;
     this.earth.castShadow = true;
 
 
@@ -191,7 +178,6 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.uranus = new Mesh(new SphereGeometry(7 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x00ffff }));
     this.neptune = new Mesh(new SphereGeometry(6 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x0000ff }));
 
-    // Saturn's Rings
     const ringGeometry = new RingGeometry(15 * this.SIZE_SCALE, 25 * this.SIZE_SCALE, 64);
     const ringMaterial = new MeshBasicMaterial({ color: 0xC2B280, side: THREE.DoubleSide, opacity: 0.5, transparent: true });
     this.saturnRings = new Mesh(ringGeometry, ringMaterial);
@@ -206,7 +192,6 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.moon.receiveShadow = true;
     this.scene.add(this.moon);
 
-    // Orbit Paths erstellen
     this.createOrbitPath(this.mercuryOrbitRadius);
     this.createOrbitPath(this.venusOrbitRadius);
     this.createOrbitPath(this.earthOrbitRadius);
@@ -216,6 +201,7 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.createOrbitPath(this.uranusOrbitRadius);
     this.createOrbitPath(this.neptuneOrbitRadius);
 
+    this.scene.add(this.sun);
     this.scene.add(this.mercury);
     this.scene.add(this.venus);
     this.scene.add(this.earth);
@@ -225,7 +211,6 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.scene.add(this.uranus);
     this.scene.add(this.neptune);
 
-    // OrbitControls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.25;
@@ -234,25 +219,15 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   }
 
   addBackground() {
-    // Lade Textur für den Hintergrund (z.B. ein Universumshintergrundbild)
-    const textureLoader = new THREE.TextureLoader();
-    const texture = textureLoader.load('assets/background.jpg');  // Ersetze mit dem Pfad zu deinem Hintergrundbild
-
-    // Erstelle eine Kugel mit der Textur als Material
-    const geometry = new SphereGeometry(50000, 60, 60);
-    const material = new MeshStandardMaterial({
-      map: texture,
-      side: THREE.DoubleSide,
-      emissive: 0xffffff,
-      emissiveIntensity: 0.5,
+    const rgbeLoader = new RGBELoader();
+  
+    rgbeLoader.load('assets/HDR_blue_nebulae-1.hdr', (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+  
+      this.scene.environment = texture;
+  
+      this.scene.background = texture;
     });
-
-    const sphere = new Mesh(geometry, material);
-    sphere.position.set(0, 0, 0);
-    this.scene.add(sphere);
-
-    // Entferne die Kugel, damit sie als Hintergrund fungiert und sich nicht dreht
-    this.scene.background = texture;
   }
 
   createOrbitPath(radius: number) {
@@ -272,7 +247,6 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   animate() {
     const elapsedTime = this.clock.getElapsedTime();
   
-    // Update planet positions
     this.mercury.position.x = this.mercuryOrbitRadius * Math.cos(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
     this.mercury.position.z = this.mercuryOrbitRadius * Math.sin(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
   
@@ -292,7 +266,7 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.saturn.position.z = this.saturnOrbitRadius * Math.sin(elapsedTime / this.saturnOrbitTime * 2 * Math.PI);
 
     this.saturnRings.position.copy(this.saturn.position);
-    this.saturnRings.rotation.x = Math.PI / 180 * 27; // Tilt the rings by ~27 degrees
+    this.saturnRings.rotation.x = Math.PI / 180 * 27;
     this.saturnRings.rotation.z = Math.PI / 2;
     this.saturnRings.rotation.z += 0.005;
   
@@ -302,31 +276,24 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.neptune.position.x = this.neptuneOrbitRadius * Math.cos(elapsedTime / this.neptuneOrbitTime * 2 * Math.PI);
     this.neptune.position.z = this.neptuneOrbitRadius * Math.sin(elapsedTime / this.neptuneOrbitTime * 2 * Math.PI);
   
-    // Moon orbiting Earth
     this.moon.position.x = this.earth.position.x + this.moonOrbitRadius * Math.cos(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
     this.moon.position.z = this.earth.position.z + this.moonOrbitRadius * Math.sin(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
   
-    // Track selected planet
     if (this.trackedPlanet && this.isTracking) {
       const planetPosition = new THREE.Vector3();
       this.trackedPlanet.getWorldPosition(planetPosition);
   
-      // Define a closer offset for a smooth camera approach
-      const offset = new THREE.Vector3(10, 10, 10); // You can adjust this to control distance
+      const offset = new THREE.Vector3(10, 10, 10);
       const targetPosition = planetPosition.clone().add(offset);
   
-      // Interpolate camera position smoothly towards the target
-      this.camera.position.lerp(targetPosition, 0.1); // Adjust 0.1 for smoothness
+      this.camera.position.lerp(targetPosition, 0.1);
   
-      // Make sure the camera is looking at the planet
       this.camera.lookAt(planetPosition);
   
-      // Update the OrbitControls target
       this.controls.target.copy(planetPosition);
       this.controls.update();
     }
-  
-    // Render the scene
+
     this.renderer.clear();
     this.composer.render();
     this.renderer.render(this.scene, this.camera);
@@ -349,5 +316,28 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
 
     this.controls.target.copy(planetPosition);
     this.controls.update();
+  }
+
+  resetView() {
+    this.isTracking = false;
+    this.trackedPlanet = null;
+  
+    const targetPosition = new THREE.Vector3(600, 300, 600);
+    const focusPoint = new THREE.Vector3(0, 0, 0);
+  
+    gsap.to(this.camera.position, {
+      x: targetPosition.x,
+      y: targetPosition.y,
+      z: targetPosition.z,
+      duration: 1.5,
+      ease: "power2.inOut",
+      onUpdate: () => {
+        this.camera.lookAt(focusPoint);
+        this.controls.target.copy(focusPoint);
+      },
+      onComplete: () => {
+        this.controls.update();
+      },
+    });
   }
 }
