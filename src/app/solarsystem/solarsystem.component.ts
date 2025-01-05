@@ -5,8 +5,6 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
-import Planet from './planet';
-import Moon from './moon';
 import gsap from 'gsap';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
 
@@ -19,14 +17,14 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   @ViewChild('threejs') canvas!: ElementRef<HTMLCanvasElement>;
 
   planets = [
-    { name: 'Merkur', info: 'Orbitdauer: 88 Tage, Abstand zur Sonne: 57.91 Mio. km, Monde: 0, Geschwindigkeit: 47.87 km/s' },
-    { name: 'Venus', info: 'Orbitdauer: 225 Tage, Abstand zur Sonne: 108.2 Mio. km, Monde: 0, Geschwindigkeit: 35.02 km/s' },
-    { name: 'Erde', info: 'Orbitdauer: 365 Tage, Abstand zur Sonne: 149.6 Mio. km, Monde: 1, Geschwindigkeit: 29.78 km/s' },
-    { name: 'Mars', info: 'Orbitdauer: 687 Tage, Abstand zur Sonne: 227.9 Mio. km, Monde: 2, Geschwindigkeit: 24.07 km/s' },
-    { name: 'Jupiter', info: 'Orbitdauer: 11.86 Jahre, Abstand zur Sonne: 778.5 Mio. km, Monde: 79, Geschwindigkeit: 13.07 km/s' },
-    { name: 'Saturn', info: 'Orbitdauer: 29.46 Jahre, Abstand zur Sonne: 1.434 Mrd. km, Monde: 83, Geschwindigkeit: 9.69 km/s' },
-    { name: 'Uranus', info: 'Orbitdauer: 84 Jahre, Abstand zur Sonne: 2.871 Mrd. km, Monde: 27, Geschwindigkeit: 6.81 km/s' },
-    { name: 'Neptun', info: 'Orbitdauer: 164.8 Jahre, Abstand zur Sonne: 4.495 Mrd. km, Monde: 14, Geschwindigkeit: 5.43 km/s' }
+    { name: 'Merkur', info: 'Orbitdauer: 88 Tage, Abstand zur Sonne: 57.91 Mio. km, Geschwindigkeit: 47.87 km/s' },
+    { name: 'Venus', info: 'Orbitdauer: 225 Tage, Abstand zur Sonne: 108.2 Mio. km, Geschwindigkeit: 35.02 km/s' },
+    { name: 'Erde', info: 'Orbitdauer: 365 Tage, Abstand zur Sonne: 149.6 Mio. km, Geschwindigkeit: 29.78 km/s' },
+    { name: 'Mars', info: 'Orbitdauer: 687 Tage, Abstand zur Sonne: 227.9 Mio. km, Geschwindigkeit: 24.07 km/s' },
+    { name: 'Jupiter', info: 'Orbitdauer: 11.86 Jahre, Abstand zur Sonne: 778.5 Mio. km, Geschwindigkeit: 13.07 km/s' },
+    { name: 'Saturn', info: 'Orbitdauer: 29.46 Jahre, Abstand zur Sonne: 1.434 Mrd. km, Geschwindigkeit: 9.69 km/s' },
+    { name: 'Uranus', info: 'Orbitdauer: 84 Jahre, Abstand zur Sonne: 2.871 Mrd. km, Geschwindigkeit: 6.81 km/s' },
+    { name: 'Neptun', info: 'Orbitdauer: 164.8 Jahre, Abstand zur Sonne: 4.495 Mrd. km, Geschwindigkeit: 5.43 km/s' }
   ];
   
 
@@ -78,6 +76,8 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   saturnOrbitTime = this.earthOrbitTime * 29.46;
   uranusOrbitTime = this.earthOrbitTime * 84;
   neptuneOrbitTime = this.earthOrbitTime * 164.8;
+
+  timeWarp: number = 1;
 
   constructor() {}
 
@@ -155,35 +155,51 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
 
     this.sun = new Mesh(new SphereGeometry(15 * 0.5 , 32, 32), new MeshBasicMaterial({ color: 0xffcc00 }));
 
-    const sunlight = new PointLight(0xffffff, 10000, 10000);
+    const sunlight = new PointLight(0xffffff, 6, 0, 0);
     sunlight.position.set(0, 0, 0);
     sunlight.castShadow = true;
     sunlight.shadow.mapSize.width = 10000;
     sunlight.shadow.mapSize.height = 10000;
     this.scene.add(sunlight);
 
-    this.mercury = new Mesh(new SphereGeometry(2 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x888888 }));
+    this.mercury = new Mesh(new SphereGeometry(2 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_mercury.jpg')}));
+    this.venus = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_venus_atmosphere.jpg')}));
+    this.earth = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32),new MeshStandardMaterial({map: textureLoader.load('assets/2k_earth_daymap.jpg')}));
+    this.mars = new Mesh(new SphereGeometry(3 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_mars.jpg')}));
+    this.jupiter = new Mesh(new SphereGeometry(16 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_jupiter.jpg')}));
 
-    this.venus = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0xffc300 }));
+    this.saturn = new Mesh(new SphereGeometry(12 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_saturn.jpg')}));
 
-    //so alles machen
-    this.earth = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32),new MeshStandardMaterial({map: textureLoader.load('assets/earth.jpg'),}));
-    this.earth.receiveShadow = true;
-    this.earth.castShadow = true;
+    this.uranus = new Mesh(new SphereGeometry(7 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_uranus.jpg')}));
 
+    this.neptune = new Mesh(new SphereGeometry(6 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_neptune.jpg')}));
 
-    this.mars = new Mesh(new SphereGeometry(3 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0xff5733 }));
-    this.jupiter = new Mesh(new SphereGeometry(16 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x8B4513 }));
-    this.saturn = new Mesh(new SphereGeometry(12 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0xF4A300 }));
-    this.uranus = new Mesh(new SphereGeometry(7 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x00ffff }));
-    this.neptune = new Mesh(new SphereGeometry(6 * this.SIZE_SCALE, 32, 32), new MeshBasicMaterial({ color: 0x0000ff }));
-
+    //saturn rings dont work for now
+    //const ringMaterial = new MeshStandardMaterial({ map: textureLoader.load('assets/saturn_ring_alpha.png'), side: THREE.DoubleSide, opacity: 0.5, transparent: true });
     const ringGeometry = new RingGeometry(15 * this.SIZE_SCALE, 25 * this.SIZE_SCALE, 64);
-    const ringMaterial = new MeshBasicMaterial({ color: 0xC2B280, side: THREE.DoubleSide, opacity: 0.5, transparent: true });
-    this.saturnRings = new Mesh(ringGeometry, ringMaterial);
+    const positions = ringGeometry.attributes['position'];
+    const uvs = [];
+    for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i);
+        const y = positions.getY(i);
+        const u = (x / (25 * this.SIZE_SCALE)) * 0.5 + 0.5;
+        const v = (y / (25 * this.SIZE_SCALE)) * 0.5 + 0.5;
+        uvs.push(u, v);
+    }
+    ringGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    
+    this.saturnRings = new Mesh(
+        ringGeometry,
+        new MeshStandardMaterial({
+            map: textureLoader.load('assets/2k_saturn_ring_alpha.png'),
+            side: THREE.DoubleSide,
+            transparent: true
+        })
+    );
     
     this.saturn.add(this.saturnRings);
     this.scene.add(this.saturnRings);
+    
 
     const moonGeometry = new SphereGeometry(0.8 * this.SIZE_SCALE, 32, 32);
     const moonMaterial = new MeshLambertMaterial({ color: 0xaaaaaa });
@@ -245,7 +261,7 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   }
 
   animate() {
-    const elapsedTime = this.clock.getElapsedTime();
+    const elapsedTime = this.clock.getElapsedTime() * this.timeWarp;
   
     this.mercury.position.x = this.mercuryOrbitRadius * Math.cos(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
     this.mercury.position.z = this.mercuryOrbitRadius * Math.sin(elapsedTime / this.mercuryOrbitTime * 2 * Math.PI);
@@ -299,6 +315,11 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.renderer.render(this.scene, this.camera);
   }
 
+  // time warp not working correctly ----------------------------------------------------------------------------------------------------
+  onTimeWarpChange(warpFactor: number) {
+    this.timeWarp = warpFactor;
+  }
+
   trackPlanet(planet: THREE.Mesh) {
 
     this.trackedPlanet = planet;
@@ -321,6 +342,8 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   resetView() {
     this.isTracking = false;
     this.trackedPlanet = null;
+
+    this.selectedPlanet = null;
   
     const targetPosition = new THREE.Vector3(600, 300, 600);
     const focusPoint = new THREE.Vector3(0, 0, 0);
@@ -330,7 +353,6 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
       y: targetPosition.y,
       z: targetPosition.z,
       duration: 1.5,
-      ease: "power2.inOut",
       onUpdate: () => {
         this.camera.lookAt(focusPoint);
         this.controls.target.copy(focusPoint);
