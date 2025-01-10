@@ -7,6 +7,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
 import gsap from 'gsap';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
 
 @Component({
   selector: 'app-solarsystem',
@@ -54,6 +55,8 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   uranus!: Mesh;
   neptune!: Mesh;
 
+  ufo!: THREE.Object3D;
+
   DISTANCE_SCALE = 0.1;
   SIZE_SCALE = 0.2;
 
@@ -76,6 +79,7 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   saturnOrbitTime = this.earthOrbitTime * 29.46;
   uranusOrbitTime = this.earthOrbitTime * 84;
   neptuneOrbitTime = this.earthOrbitTime * 164.8;
+
 
   timeWarp: number = 1;
 
@@ -143,6 +147,14 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
 
     this.addBackground();
 
+    const fbxLoader = new FBXLoader();
+    fbxLoader.load('assets/UFO.fbx', (object) => {
+      this.ufo = object;
+      this.ufo.scale.set(0.3, 0.3, 0.3);
+      this.scene.add(this.ufo);
+    });
+
+
     this.composer = new EffectComposer(this.renderer);
     const renderPass = new RenderPass(this.scene, this.camera);
     this.composer.addPass(renderPass);
@@ -164,7 +176,19 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
 
     this.mercury = new Mesh(new SphereGeometry(2 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_mercury.jpg')}));
     this.venus = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_venus_atmosphere.jpg')}));
-    this.earth = new Mesh(new SphereGeometry(4 * this.SIZE_SCALE, 32, 32),new MeshStandardMaterial({map: textureLoader.load('assets/2k_earth_daymap.jpg')}));
+
+    this.earth = new Mesh(
+      new SphereGeometry(4 * this.SIZE_SCALE, 32, 32),
+      new MeshStandardMaterial({
+        map: textureLoader.load('assets/2k_earth_daymap.jpg'),
+        displacementMap: textureLoader.load('assets/earth_height_map.png'),
+        displacementScale: 0.1,
+        normalMap: textureLoader.load('assets/Earth_Normal_Map.jpg'),
+        roughness: 0.1,
+        metalness: 0,
+      })
+    );
+
     this.mars = new Mesh(new SphereGeometry(3 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_mars.jpg')}));
     this.jupiter = new Mesh(new SphereGeometry(16 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_jupiter.jpg')}));
 
@@ -175,27 +199,20 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     this.neptune = new Mesh(new SphereGeometry(6 * this.SIZE_SCALE, 32, 32), new MeshStandardMaterial({map: textureLoader.load('assets/2k_neptune.jpg')}));
 
     //saturn rings dont work for now
-    //const ringMaterial = new MeshStandardMaterial({ map: textureLoader.load('assets/saturn_ring_alpha.png'), side: THREE.DoubleSide, opacity: 0.5, transparent: true });
+    const ringMaterial = new MeshStandardMaterial({ map: textureLoader.load('assets/saturn_rings.png'), side: THREE.DoubleSide, opacity: 0.8, transparent: true });
     const ringGeometry = new RingGeometry(15 * this.SIZE_SCALE, 25 * this.SIZE_SCALE, 64);
-    const positions = ringGeometry.attributes['position'];
-    const uvs = [];
-    for (let i = 0; i < positions.count; i++) {
-        const x = positions.getX(i);
-        const y = positions.getY(i);
-        const u = (x / (25 * this.SIZE_SCALE)) * 0.5 + 0.5;
-        const v = (y / (25 * this.SIZE_SCALE)) * 0.5 + 0.5;
-        uvs.push(u, v);
-    }
-    ringGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    //const positions = ringGeometry.attributes['position'];
+    //const uvs = [];
+    //for (let i = 0; i < positions.count; i++) {
+    //    const x = positions.getX(i);
+    //    const y = positions.getY(i);
+    //    const u = (x / (25 * this.SIZE_SCALE)) * 0.5 + 0.5;
+    //    const v = (y / (25 * this.SIZE_SCALE)) * 0.5 + 0.5;
+    //    uvs.push(u, v);
+    //}
+    //ringGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     
-    this.saturnRings = new Mesh(
-        ringGeometry,
-        new MeshStandardMaterial({
-            map: textureLoader.load('assets/2k_saturn_ring_alpha.png'),
-            side: THREE.DoubleSide,
-            transparent: true
-        })
-    );
+    this.saturnRings = new Mesh(ringGeometry,ringMaterial);
     
     this.saturn.add(this.saturnRings);
     this.scene.add(this.saturnRings);
@@ -294,6 +311,16 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
   
     this.moon.position.x = this.earth.position.x + this.moonOrbitRadius * Math.cos(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
     this.moon.position.z = this.earth.position.z + this.moonOrbitRadius * Math.sin(elapsedTime / this.moonOrbitTime * 2 * Math.PI);
+
+    if (this.ufo) {
+      const ufoOrbitRadius = 70;
+      const ufoOrbitTime = 15;
+  
+      this.ufo.position.x = this.earth.position.x + ufoOrbitRadius * Math.cos(elapsedTime / ufoOrbitTime * 2 * Math.PI);
+      this.ufo.position.z = this.earth.position.z + ufoOrbitRadius * Math.sin(elapsedTime / ufoOrbitTime * 2 * Math.PI);
+      //this.ufo.rotation.y += 0.01;
+    }
+
   
     if (this.trackedPlanet && this.isTracking) {
       const planetPosition = new THREE.Vector3();
