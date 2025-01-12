@@ -160,7 +160,7 @@ export class SolarsystemComponent implements OnInit, AfterViewInit {
     const renderPass = new RenderPass(this.scene, this.camera);
     this.composer.addPass(renderPass);
 
-    this.sun = new Mesh(new SphereGeometry(15 * 0.5 , 32, 32), new MeshBasicMaterial({ color: 0xffcc00 }));
+    this.sun = new Mesh(new SphereGeometry(15 * 0.5 , 32, 32), new MeshBasicMaterial({map: textureLoader.load('assets/2k_sun.jpg')}));
 
     const sunlight = new PointLight(0xffffff, 6, 0, 0);
     sunlight.position.set(0, 0, 0);
